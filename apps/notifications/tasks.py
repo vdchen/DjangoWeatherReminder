@@ -11,25 +11,31 @@ def check_and_send_notifications():
     Periodic task to find due subscriptions and dispatch notifications.
     """
     now = timezone.now()
-    # 1. Get subscriptions
+    # Get subscriptions
     due_subscriptions = Subscription.objects.select_related('user',
                                                             'city').filter(
         next_notify_at__lte=now)
 
+    #Group subscriptions by city
+    grouped_subs = {}
     for sub in due_subscriptions:
-        # 2. Fetch actual weather
-        weather_info = WeatherService.get_weather_data(sub.city.name)
+        grouped_subs.setdefault(sub.city.name, []).append(sub)
+
+    # Iterate over unique cities
+    for city_name, subs in grouped_subs.items():
+        # Fetch weather ONCE for this city
+        weather_info = WeatherService.get_weather_data(city_name)
 
         if weather_info:
-            # 3. Pass the webhook URL to the child task
-            send_notification_logic.delay(
-                user_email=sub.user.email,
-                weather_data=weather_info,
-                webhook_url=sub.webhook_url
-            )
-
-            # 4. Update the schedule for the next run
-            sub.update_next_notification()
+            for sub in subs:
+            # Dispatch individual notifications
+                send_notification_logic.delay(
+                    user_email=sub.user.email,
+                    weather_data=weather_info,
+                    webhook_url=sub.webhook_url
+                )
+                # Update the schedule for the next run
+                sub.update_next_notification()
 
 
 @shared_task
