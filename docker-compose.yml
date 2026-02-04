@@ -1,0 +1,51 @@
+services:
+  # Database
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file: .env
+
+  # Redis (Cache & Broker)
+  redis:
+    image: redis:7-alpine
+
+  # Django Web Server
+  web:
+    build: .
+    command: /entrypoint.sh
+    ports:
+      - "8000:8000"
+    env_file: .env
+    environment:
+      - SERVICE_TYPE=web
+      - DATABASE_URL=${DATABASE_URL}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - DEBUG=True
+    depends_on:
+      - db
+      - redis
+  # Celery Worker
+  celery_worker:
+    build: .
+    environment:
+      - SERVICE_TYPE=worker
+      - DATABASE_URL=${DATABASE_URL}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+    depends_on:
+      - db
+      - redis
+
+  # Celery Beat (Scheduler)
+  celery_beat:
+    build: .
+    environment:
+      - SERVICE_TYPE=beat
+      - DATABASE_URL=${DATABASE_URL}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+    depends_on:
+      - db
+      - redis
+
+volumes:
+  postgres_data:
