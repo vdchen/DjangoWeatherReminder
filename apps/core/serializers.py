@@ -2,19 +2,26 @@ from rest_framework import serializers
 from .models import City, Subscription
 
 class SubscriptionSerializer(serializers.ModelSerializer):
-    # We want to accept a city name as input, not just an ID
-    city_name = serializers.CharField(source='city.name')
-    # Read-only fields to display data back to the user
-    next_notification = serializers.DateTimeField(source='next_notify_at', read_only=True)
+    # Input: The user sends this string (Write Only)
+    city_name = serializers.CharField(write_only=True)
+
+    # Output: The API returns this string (Read Only)
+    city = serializers.CharField(source='city.name', read_only=True)
+
+    # Read-only fields
+    next_notification = serializers.DateTimeField(source='next_notify_at',
+                                                  read_only=True)
 
     class Meta:
         model = Subscription
-        fields = ['id', 'city_name', 'period_hours', 'webhook_url', 'next_notification']
+        # Note: We list BOTH 'city_name' (input) and 'city' (output)
+        fields = ['id', 'city_name', 'city', 'period_hours', 'webhook_url',
+                  'next_notification']
 
     def create(self, validated_data):
         # Extract city_name from the flattened data
-        city_data = validated_data.pop('city')
-        city_name = city_data['name']
+        city_name = validated_data.pop('city_name')
+
         user = self.context['request'].user
 
         # Logic: Find the city or create it if it doesn't exist

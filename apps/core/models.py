@@ -45,9 +45,7 @@ class Subscription(models.Model):
 
     #Webhook Delivery System
     webhook_url = models.URLField(max_length=500, null=True, blank=True)
-
-    # Optional: Add a field for email:
-    # email_notification = models.BooleanField(default=True)
+    email_enabled = models.BooleanField(default=True)
 
     def save(self, *args, **kwargs):
         # On creation, set the first notification time
