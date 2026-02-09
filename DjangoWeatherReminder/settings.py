@@ -143,12 +143,6 @@ CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 CELERY_BROKER_USE_SSL = {
     'ssl_cert_reqs': None # Required for Azure Redis
 }
-CELERY_BEAT_SCHEDULE = {
-    'check-subscriptions-every-30-minutes': {
-        'task': 'apps.notifications.tasks.check_and_send_notifications',
-        'schedule': 1800.0,  # 30 minutes
-    },
-}
 CELERY_TIMEZONE = 'UTC'
 
 # --- Cache Configuration ---
