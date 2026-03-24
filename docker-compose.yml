@@ -1,0 +1,56 @@
+services:
+  # Database
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file: .env
+
+  # Redis (Cache & Broker)
+  redis:
+    image: redis:7-alpine
+
+  # Django Web Server
+  web:
+    build: .
+    # The entrypoint runs first, then this command executes via exec "$@"
+    command: python -m gunicorn DjangoWeatherReminder.wsgi:application --bind 0.0.0.0:8000
+    ports:
+      - "8000:8000"
+    env_file: .env
+    environment:
+      - SERVICE_TYPE=web
+
+
+
+    depends_on:
+      - db
+      - redis
+  # Celery Worker
+  celery_worker:
+    build: .
+    command: celery -A DjangoWeatherReminder worker --loglevel=info
+    env_file: .env
+    environment:
+      - SERVICE_TYPE=worker
+
+
+    depends_on:
+      - db
+      - redis
+
+  # Celery Beat (Scheduler)
+  celery_beat:
+    build: .
+    command: celery -A DjangoWeatherReminder beat --loglevel=info
+    env_file: .env
+    environment:
+      - SERVICE_TYPE=beat
+
+
+    depends_on:
+      - db
+      - redis
+
+volumes:
+  postgres_data:
