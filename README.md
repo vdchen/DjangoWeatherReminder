@@ -1,7 +1,3 @@
-# Task 16 Decompose project
-
-
-
 # DjangoWeatherReminder
 
 An automated weather notification service that sends personalized weather updates to users via Webhooks based on a customizable schedule.

@@ -13,25 +13,28 @@ services:
   # Django Web Server
   web:
     build: .
-    command: /entrypoint.sh
+    # The entrypoint runs first, then this command executes via exec "$@"
+    command: python -m gunicorn DjangoWeatherReminder.wsgi:application --bind 0.0.0.0:8000
     ports:
       - "8000:8000"
     env_file: .env
     environment:
       - SERVICE_TYPE=web
-      - DATABASE_URL=${DATABASE_URL}
-      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
-      - DEBUG=True
+
+
+
     depends_on:
       - db
       - redis
   # Celery Worker
   celery_worker:
     build: .
+    command: celery -A DjangoWeatherReminder worker --loglevel=info
+    env_file: .env
     environment:
       - SERVICE_TYPE=worker
-      - DATABASE_URL=${DATABASE_URL}
-      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+
+
     depends_on:
       - db
       - redis
@@ -39,10 +42,12 @@ services:
   # Celery Beat (Scheduler)
   celery_beat:
     build: .
+    command: celery -A DjangoWeatherReminder beat --loglevel=info
+    env_file: .env
     environment:
       - SERVICE_TYPE=beat
-      - DATABASE_URL=${DATABASE_URL}
-      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+
+
     depends_on:
       - db
       - redis
