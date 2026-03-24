@@ -63,6 +63,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -100,6 +101,14 @@ DATABASES = {
 
 OPENWEATHER_API_KEY = env('OPENWEATHER_API_KEY')
 
+
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+
+
 # --- DRF & JWT Configuration ---
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -116,18 +125,36 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
 }
 
+csrf_raw = env('CSRF_TRUSTED_ORIGINS', default='')
+
+# If it's a string from Azure, split it into a list.
+# If it's empty, use an empty list.
+if isinstance(csrf_raw, str) and csrf_raw:
+    CSRF_TRUSTED_ORIGINS = csrf_raw.split(',')
+else:
+    CSRF_TRUSTED_ORIGINS = csrf_raw
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+
 # --- Celery Configuration (Redis) ---
 CELERY_BROKER_URL = env('CELERY_BROKER_URL', default='redis://localhost:6379/0')
 CELERY_RESULT_BACKEND = CELERY_BROKER_URL
+CELERY_BROKER_USE_SSL = {
+    'ssl_cert_reqs': None # Required for Azure Redis
+}
 CELERY_TIMEZONE = 'UTC'
 
 # --- Cache Configuration ---
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": env('CELERY_BROKER_URL', default='redis://127.0.0.1:6379/0'),
+        "LOCATION": env('CELERY_BROKER_URL'),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "CONNECTION_POOL_KWARGS": {
+                "ssl_cert_reqs": None
+            }
         }
     }
 }
